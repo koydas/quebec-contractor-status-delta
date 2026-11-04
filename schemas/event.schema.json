@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RBQ active licence change event (draft)",
+  "description": "Design-stage JSON payload schema. Not an Apify Actor input/output config.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "licenceNumber",
+    "status",
+    "verification",
+    "registryPresence",
+    "changes",
+    "requiresHumanReview",
+    "observedAt",
+    "source",
+    "nextSnapshot"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "licenceNumber": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "FIRST_OBSERVATION",
+        "NO_CHANGE",
+        "CHANGED",
+        "SOURCE_INCOMPLETE"
+      ]
+    },
+    "verification": {
+      "enum": [
+        "VERIFIED_CURRENT_OBSERVATION",
+        "VERIFIED_COMPARISON",
+        "UNVERIFIABLE"
+      ]
+    },
+    "registryPresence": {
+      "enum": [
+        "LISTED_ACTIVE",
+        "NOT_LISTED_IN_ACTIVE_DATASET",
+        "UNKNOWN"
+      ]
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "field",
+          "before",
+          "after"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "enum": [
+              "registryPresence",
+              "licenceClasses"
+            ]
+          },
+          "before": {},
+          "after": {}
+        }
+      }
+    },
+    "requiresHumanReview": {
+      "type": "boolean"
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "datasetUrl",
+        "publishedAt",
+        "attribution"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "datasetUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "publishedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "nextSnapshot": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schemaVersion",
+            "licenceNumber",
+            "registryPresence",
+            "licenceClasses",
+            "sourceObservedAt"
+          ],
+          "properties": {
+            "schemaVersion": {
+              "const": 1
+            },
+            "licenceNumber": {
+              "type": "string",
+              "minLength": 1
+            },
+            "registryPresence": {
+              "enum": [
+                "LISTED_ACTIVE",
+                "NOT_LISTED_IN_ACTIVE_DATASET"
+              ]
+            },
+            "licenceClasses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "sourceObservedAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "SOURCE_INCOMPLETE"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "nextSnapshot": {
+            "type": "null"
+          },
+          "registryPresence": {
+            "const": "UNKNOWN"
+          },
+          "verification": {
+            "const": "UNVERIFIABLE"
+          },
+          "requiresHumanReview": {
+            "const": true
+          },
+          "changes": {
+            "maxItems": 0
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "nextSnapshot": {
+            "type": "object"
+          },
+          "registryPresence": {
+            "enum": [
+              "LISTED_ACTIVE",
+              "NOT_LISTED_IN_ACTIVE_DATASET"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "CHANGED"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "requiresHumanReview": {
+            "const": true
+          },
+          "changes": {
+            "minItems": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "changes": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}
